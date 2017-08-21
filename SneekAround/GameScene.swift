@@ -9,7 +9,7 @@
 import SpriteKit
 import GameplayKit
 
-class GameScene: SKScene {
+class GameScene: SKScene, SKPhysicsContactDelegate {
     
     private var label : SKLabelNode?
     private var spinnyNode : SKShapeNode?
@@ -23,9 +23,11 @@ class GameScene: SKScene {
     var dt: TimeInterval = 0
     let playerRotateRadiansPerSec:CGFloat = 4.0 * π
     let playerMovePointsPerSec: CGFloat = 180.0
-    
+    var dead = false
     
     override func didMove(to view: SKView) {
+        
+        physicsWorld.contactDelegate = self
         
         let background = SKSpriteNode.init(imageNamed: "backgroundLevel01")
         background.position = CGPoint(x: size.width/2, y: size.height/2)
@@ -36,16 +38,20 @@ class GameScene: SKScene {
         let screenWidth = Int(size.width)
         let screenHeight = Int(size.height)
         
-        let randomX =  Int(arc4random_uniform(UInt32(screenWidth)))
-        let randomY = Int(arc4random_uniform(UInt32(screenHeight)))
         
         func spawnEnemy() {
+            
+            let randomX =  Int(arc4random_uniform(UInt32(screenWidth)))
+            let randomY = Int(arc4random_uniform(UInt32(screenHeight)))
+            
             let enemy = SKSpriteNode(imageNamed: "enemy")
             enemy.position = /*CGPoint(x: 800, y: 800)*/CGPoint (
                 x: CGFloat(randomX),
                 y: CGFloat(randomY))
             
             print("enemy spawned")
+            print("\(randomX) = randomX")
+            print("\(randomY) = randomY")
             
             addChild(enemy)
             
@@ -59,15 +65,18 @@ class GameScene: SKScene {
         
         player.position = CGPoint(x: 400, y: 400)
         player.zPosition = 1
+        
         addChild(player)
         
         run(SKAction.repeatForever(
             SKAction.sequence([SKAction.run(spawnEnemy),
                                SKAction.wait(forDuration: 10.0)])))
-
+        
+        player.physicsBody?.categoryBitMask = 1
+        player.physicsBody?.contactTestBitMask = 2
+        player.physicsBody?.collisionBitMask =  2
 
     }
-    
     
     override init(size: CGSize) {
         let maxAspectRatio:CGFloat = 16.0/9.0
@@ -94,7 +103,6 @@ class GameScene: SKScene {
     func moveSprite(_ sprite: SKSpriteNode, velocity: CGPoint){
         let amountToMove = CGPoint(x: velocity.x * CGFloat(dt),
                                    y: velocity.y * CGFloat(dt))
-        //print("Amount to move \(amountToMove)")
         sprite.position = CGPoint(x: sprite.position.x + amountToMove.x,
                                   y: sprite.position.y + amountToMove.y)
     }
@@ -103,6 +111,15 @@ class GameScene: SKScene {
         let shortest = shortestAngleBetween(angle1: sprite.zRotation, angle2: velocity.angle)
         let amountToRotate = min(rotateRadiansPerSec * CGFloat(dt), abs(shortest))
         sprite.zRotation += shortest.sign() * amountToRotate
+    }
+    
+    func death() {
+        if dead == true {
+            let disappear = SKAction.scale(to: 0, duration: 0.5)
+            let removeFromParent = SKAction.removeFromParent()
+            let actions = [disappear, removeFromParent]
+            player.run(SKAction.sequence(actions))
+        }
     }
     
     func boundsCheckPlayer() {
@@ -135,7 +152,8 @@ class GameScene: SKScene {
             dt = 0
         }
         lastUpdateTime = currentTime
-        //print("\(dt*1000) milliseconds scince last update")
+        
+        
         
         if let lastTouchLocation = lastTouchLocation {
             let diff = lastTouchLocation - player.position
