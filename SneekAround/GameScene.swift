@@ -24,10 +24,26 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     let playerRotateRadiansPerSec:CGFloat = 4.0 * π
     let playerMovePointsPerSec: CGFloat = 180.0
     var dead = false
+    let playerCatagory: UInt32 = 0x1 << 1
+    let enemyCatagory: UInt32 = 0x1 << 2
+    let buildingCatagory: UInt32 = 0x1 << 3
+    
+    func didBegin(_ contact: SKPhysicsContact) {
+        print("contact")
+        if contact.collisionImpulse > 0 &&
+            contact.bodyA.node?.name == "player" &&
+            contact.bodyB.node?.name == "enemy"{
+            
+            death()
+        }
+    }
     
     override func didMove(to view: SKView) {
         
         physicsWorld.contactDelegate = self
+        
+        let obstacle = SKSpriteNode.init(imageNamed: "")
+        obstacle.physicsBody = SKPhysicsBody(rectangleOf: CGSize(), center: CGPoint())
         
         let background = SKSpriteNode.init(imageNamed: "backgroundLevel01")
         background.position = CGPoint(x: size.width/2, y: size.height/2)
@@ -49,6 +65,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 x: CGFloat(randomX),
                 y: CGFloat(randomY))
             
+            enemy.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: 80, height: 80), center: CGPoint(x: randomX, y: randomY))
+            enemy.physicsBody?.affectedByGravity = false
+            enemy.physicsBody?.categoryBitMask = enemyCatagory
+            enemy.physicsBody?.collisionBitMask = enemyCatagory | buildingCatagory | playerCatagory
+            
             print("enemy spawned")
             print("\(randomX) = randomX")
             print("\(randomY) = randomY")
@@ -65,13 +86,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         player.position = CGPoint(x: 400, y: 400)
         player.zPosition = 1
-        
+        player.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: 80, height: 80))
+        player.physicsBody?.affectedByGravity = false
+        player.physicsBody?.categoryBitMask = playerCatagory
+        player.physicsBody?.collisionBitMask = enemyCatagory | buildingCatagory
         addChild(player)
         
         run(SKAction.repeatForever(
             SKAction.sequence([SKAction.run(spawnEnemy),
                                SKAction.wait(forDuration: 10.0)])))
-        
+    
         player.physicsBody?.categoryBitMask = 1
         player.physicsBody?.contactTestBitMask = 2
         player.physicsBody?.collisionBitMask =  2
