@@ -16,7 +16,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     let playableRect: CGRect
 
-    let player = SKSpriteNode(imageNamed: "character-1")
+    let player = SKSpriteNode.init(imageNamed: "character-1")
     var velocity = CGPoint.zero
     var lastTouchLocation: CGPoint?
     var lastUpdateTime: TimeInterval = 0
@@ -27,13 +27,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     let playerCatagory: UInt32 = 0x1 << 1
     let enemyCatagory: UInt32 = 0x1 << 2
     let buildingCatagory: UInt32 = 0x1 << 3
+    var characterPhysics: CGRect
     
     func didBegin(_ contact: SKPhysicsContact) {
         print("contact")
         if contact.collisionImpulse > 0 &&
             contact.bodyA.node?.name == "player" &&
             contact.bodyB.node?.name == "enemy"{
-            
             death()
         }
     }
@@ -60,7 +60,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let randomX =  Int(arc4random_uniform(UInt32(screenWidth)))
             let randomY = Int(arc4random_uniform(UInt32(screenHeight)))
             
-            let enemy = SKSpriteNode(imageNamed: "enemy")
+            let enemy = SKSpriteNode.init(imageNamed: "enemy")
             enemy.position = /*CGPoint(x: 800, y: 800)*/CGPoint (
                 x: CGFloat(randomX),
                 y: CGFloat(randomY))
@@ -69,6 +69,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             enemy.physicsBody?.affectedByGravity = false
             enemy.physicsBody?.categoryBitMask = enemyCatagory
             enemy.physicsBody?.collisionBitMask = enemyCatagory | buildingCatagory | playerCatagory
+            enemy.zPosition = -1.0
             
             print("enemy spawned")
             print("\(randomX) = randomX")
@@ -90,6 +91,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.physicsBody?.affectedByGravity = false
         player.physicsBody?.categoryBitMask = playerCatagory
         player.physicsBody?.collisionBitMask = enemyCatagory | buildingCatagory
+        player.zPosition = -1.0
+        characterPhysics = CGRect(x: 400, y: 400,
+            width: size.width, height: size.height)
+        
         addChild(player)
         
         run(SKAction.repeatForever(
