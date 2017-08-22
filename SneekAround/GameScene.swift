@@ -27,7 +27,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     let playerCatagory: UInt32 = 0x1 << 1
     let enemyCatagory: UInt32 = 0x1 << 2
     let buildingCatagory: UInt32 = 0x1 << 3
-    var characterPhysics: CGRect
+  //  var characterPhysics: CGRect
     
     func didBegin(_ contact: SKPhysicsContact) {
         print("contact")
@@ -92,8 +92,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.physicsBody?.categoryBitMask = playerCatagory
         player.physicsBody?.collisionBitMask = enemyCatagory | buildingCatagory
         player.zPosition = -1.0
-        characterPhysics = CGRect(x: 400, y: 400,
-            width: size.width, height: size.height)
+      //  characterPhysics = CGRect(x: 400, y: 400,
+      //      width: size.width, height: size.height)
         
         addChild(player)
         
@@ -127,6 +127,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let length = sqrt(Double(offset.x * offset.x + offset.y * offset.y))
         let direction = CGPoint(x: offset.x / CGFloat(length), y: offset.y / CGFloat(length))
         velocity = CGPoint(x: direction.x * playerMovePointsPerSec, y: direction.y * playerMovePointsPerSec)
+    }
+    
+    func detection() {
+        if player.position() == player.position(x: enemyPositionX ) {
+            
+        }
     }
     
     func moveSprite(_ sprite: SKSpriteNode, velocity: CGPoint){
