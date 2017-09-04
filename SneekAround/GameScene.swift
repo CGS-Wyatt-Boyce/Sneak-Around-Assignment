@@ -15,18 +15,33 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var spinnyNode : SKShapeNode?
     
     let playableRect: CGRect
-
+    
+    var enemyPositionX: CGFloat?
+    var enemyPositionY: CGFloat?
+    
     let player = SKSpriteNode.init(imageNamed: "character-1")
+    
     var velocity = CGPoint.zero
     var lastTouchLocation: CGPoint?
     var lastUpdateTime: TimeInterval = 0
     var dt: TimeInterval = 0
+    
     let playerRotateRadiansPerSec:CGFloat = 4.0 * π
-    let playerMovePointsPerSec: CGFloat = 180.0
+    var playerMovePointsPerSec: CGFloat = 180.0
     var dead = false
+    
     let playerCatagory: UInt32 = 0x1 << 1
     let enemyCatagory: UInt32 = 0x1 << 2
     let buildingCatagory: UInt32 = 0x1 << 3
+    
+    let enemy = SKSpriteNode.init(imageNamed: "enemy")
+    var enemyId = 0
+    var withinRange: CGPoint?
+    var playerPosInt: CGFloat?
+    var enemyPosInt: CGFloat?
+    
+    
+    
   //  var characterPhysics: CGRect
     
     func didBegin(_ contact: SKPhysicsContact) {
@@ -60,7 +75,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let randomX =  Int(arc4random_uniform(UInt32(screenWidth)))
             let randomY = Int(arc4random_uniform(UInt32(screenHeight)))
             
-            let enemy = SKSpriteNode.init(imageNamed: "enemy")
+           enemy.name = "enemy"
             enemy.position = /*CGPoint(x: 800, y: 800)*/CGPoint (
                 x: CGFloat(randomX),
                 y: CGFloat(randomY))
@@ -71,6 +86,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             enemy.physicsBody?.collisionBitMask = enemyCatagory | buildingCatagory | playerCatagory
             enemy.zPosition = -1.0
             
+            enemyPositionX = CGFloat(randomX)
+            enemyPositionY = CGFloat(randomY)
+            
             print("enemy spawned")
             print("\(randomX) = randomX")
             print("\(randomY) = randomY")
@@ -79,14 +97,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             
             let actionRemove = SKAction.removeFromParent()
             let _ = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: false) { (timerEnemy) in
-                enemy.run(actionRemove)
+                self.enemy.run(actionRemove)
                 print("enemy removed")
             }
         }
 
         
         player.position = CGPoint(x: 400, y: 400)
-        player.zPosition = 1
         player.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: 80, height: 80))
         player.physicsBody?.affectedByGravity = false
         player.physicsBody?.categoryBitMask = playerCatagory
@@ -99,12 +116,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         run(SKAction.repeatForever(
             SKAction.sequence([SKAction.run(spawnEnemy),
-                               SKAction.wait(forDuration: 10.0)])))
+                               SKAction.wait(forDuration: 9.0)])))
     
         player.physicsBody?.categoryBitMask = 1
         player.physicsBody?.contactTestBitMask = 2
         player.physicsBody?.collisionBitMask =  2
-
+        
+        playerPosInt = player.position.y + player.position.x
+        enemyPosInt = enemy.position.y + enemy.position.x
     }
     
     override init(size: CGSize) {
@@ -116,12 +135,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         playableRect = CGRect(x: 0, y: playableMargin,
                               width: size.width, height: playableHeight)
          super.init(size: size)
+        
     }
+    
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
-    
+
     func movePlayerToward(_ location: CGPoint)  {
         let offset = CGPoint (x: location.x - player.position.x, y: location.y - player.position.y)
         let length = sqrt(Double(offset.x * offset.x + offset.y * offset.y))
@@ -129,11 +149,39 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         velocity = CGPoint(x: direction.x * playerMovePointsPerSec, y: direction.y * playerMovePointsPerSec)
     }
     
-    func detection() {
-        if player.position() == player.position(x: enemyPositionX ) {
-            
+    func checkCollisions() {
+        var hitEnemies: [SKSpriteNode] = []
+        enumerateChildNodes(withName: "enemy") { node,  _ in
+            let enemy = node as! SKSpriteNode
+            if enemy.frame.insetBy(dx: 20, dy: 20).intersects(self.player.frame) {
+                hitEnemies.append(enemy)
+                print(hitEnemies)
+            }
         }
+        for enemy in hitEnemies {
+            detection()
+            playerMovePointsPerSec = 0
+        }
+        
     }
+
+    
+    func detection() {
+     //    print("\(player.position.y) player.positon.y - \(player.position.x) player.position.x = ")
+     //   print("\(playerPosInt!) = playerPosInt")
+  //      print("\(enemyPosInt! + 10) = enemyPosInt")
+            print("player detected")
+        //death()
+            let diffE = enemy.position - player.position
+            if (diffE.length() <= playerMovePointsPerSec * CGFloat(dt)) {
+                player.position = enemy.position
+                velocity = CGPoint.zero
+            } else {
+                moveSprite(enemy, velocity: velocity)
+                rotateSprite(enemy, direction: velocity, rotateRadiansPerSec: playerRotateRadiansPerSec)
+            }
+  
+        }
     
     func moveSprite(_ sprite: SKSpriteNode, velocity: CGPoint){
         let amountToMove = CGPoint(x: velocity.x * CGFloat(dt),
@@ -149,12 +197,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func death() {
-        if dead == true {
+        print("death run")
             let disappear = SKAction.scale(to: 0, duration: 0.5)
             let removeFromParent = SKAction.removeFromParent()
             let actions = [disappear, removeFromParent]
             player.run(SKAction.sequence(actions))
-        }
+        playerMovePointsPerSec = 180.0
+        
     }
     
     func boundsCheckPlayer() {
@@ -188,8 +237,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         lastUpdateTime = currentTime
         
-        
-        
         if let lastTouchLocation = lastTouchLocation {
             let diff = lastTouchLocation - player.position
             if (diff.length() <= playerMovePointsPerSec * CGFloat(dt)) {
@@ -201,6 +248,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         }
         boundsCheckPlayer()
+        checkCollisions()
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
