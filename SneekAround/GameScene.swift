@@ -198,7 +198,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         for enemy in hitEnemies {
             detection()
-            playerMovePointsPerSec = 0
             
         }
         enumerateChildNodes(withName: "person") { node,  _ in
@@ -233,6 +232,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 moveSprite(enemy, velocity: velocity)
                 rotateSprite(enemy, direction: velocity, rotateRadiansPerSec: playerRotateRadiansPerSec)
             }
+        
+        if enemy.position == player.position {
+            death()
+            playerMovePointsPerSec = 0
+        }
   
         }
     
