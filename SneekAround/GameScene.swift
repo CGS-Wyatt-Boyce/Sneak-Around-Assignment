@@ -50,6 +50,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var player = SKSpriteNode.init()
     var enemy = SKSpriteNode.init()
+     let finishZone = SKSpriteNode.init(imageNamed: "end")
     
     func spawnBackground() {
         let background = SKSpriteNode.init(imageNamed: backgroundImageName)
@@ -86,7 +87,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         physicsWorld.contactDelegate = self
         
-          let finishZone = SKSpriteNode.init(imageNamed: "end")
         finishZone.name = "finish"
         finishZone.position = CGPoint(x: 2000, y: 1200)
         finishZone.zPosition = 2
@@ -209,6 +209,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let direction = CGPoint(x: offset.x / CGFloat(length), y: offset.y / CGFloat(length))
         velocityE = CGPoint(x: direction.x * enemyMovePointsPerSec, y: direction.y * enemyMovePointsPerSec)
     }
+    
+    func finished() {
+        let _ = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { (timerEnemy) in
+            self.enemyImageName = "enemy L2"
+            self.personImageName = "person L2"
+            self.backgroundImageName = "backgroundLevel02"
+            self.spawnBackground()
+            self.death()
+            let remove = SKAction.removeFromParent()
+            self.enemy.run(remove)
+            self.randomPoint.run(remove)
+        }
+    }
+    func detectionF() {
+        levelChanged = false
+        let diffE = player.position - .position
+        if (diffE.length() <= playerMovePointsPerSec * CGFloat(dt)) {
+            finishZone.position = enemy.position
+            velocityE = CGPoint.zero
+        } else {
+            moveSpriteE(enemy, velocity: velocityE)
+            rotateSpriteE(enemy, direction: velocityE, rotateRadiansPerSec: playerRotateRadiansPerSec)
+        }
 
     // checks for collisions between sprites
     func checkCollisions() {
@@ -246,17 +269,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         }
         for finish in hitfinish {
-            levelChanged = true
-            let _ = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { (timerEnemy) in
-                self.enemyImageName = "enemy L2"
-                self.personImageName = "person L2"
-                self.backgroundImageName = "backgroundLevel02"
-                self.spawnBackground()
-                self.death()
-                    let remove = SKAction.removeFromParent()
-                    self.enemy.run(remove)
-                    self.randomPoint.run(remove)
-                }
+            
+            if levelChanged == true {
+            finished()
+                levelChanged = false
+            }
         }
 
         enumerateChildNodes(withName: "randomPoint") { node, _ in
@@ -349,8 +366,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             
             addChild(randomPoint)
         enemyMoving = true
-        
-        
         }
     
     func boundsCheckPlayer() {
