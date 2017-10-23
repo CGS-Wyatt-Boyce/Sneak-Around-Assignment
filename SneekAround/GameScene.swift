@@ -222,16 +222,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             self.randomPoint.run(remove)
         }
     }
-    func detectionF() {
-        levelChanged = false
-        let diffE = player.position - .position
-        if (diffE.length() <= playerMovePointsPerSec * CGFloat(dt)) {
-            finishZone.position = enemy.position
-            velocityE = CGPoint.zero
-        } else {
-            moveSpriteE(enemy, velocity: velocityE)
-            rotateSpriteE(enemy, direction: velocityE, rotateRadiansPerSec: playerRotateRadiansPerSec)
-        }
 
     // checks for collisions between sprites
     func checkCollisions() {
@@ -269,11 +259,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         }
         for finish in hitfinish {
-            
-            if levelChanged == true {
             finished()
-                levelChanged = false
-            }
         }
 
         enumerateChildNodes(withName: "randomPoint") { node, _ in
@@ -457,7 +443,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 self.randomMovement()
             }
         }
-       
       
         boundsCheckPlayer()
         boundsCheckEnemy()
@@ -493,8 +478,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         shape.lineWidth = 1.0
         addChild(shape)
     }
-    
-   
 }
 
 
