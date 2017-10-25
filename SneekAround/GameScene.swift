@@ -29,27 +29,23 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     let playerRotateRadiansPerSec:CGFloat = 4.0 * π
     var playerMovePointsPerSec: CGFloat = 180.0
-    var enemyMovePointsPerSec: CGFloat = 185.0
+    var enemyMovePointsPerSec: CGFloat = 190.0
     var dead = false
-    
-    let playercatagory: UInt32 = 0x1 << 1
-    let enemycatagory: UInt32 = 0x1 << 2
-    let buildingcatagory: UInt32 = 0x1 << 3
     
     let randomPoint = SKSpriteNode.init()
     var enemyId = 0
-    var withinRange: CGPoint?
-    var playerPosInt: CGFloat?
-    var enemyPosInt: CGFloat?
+
     var randomPosition: CGPoint?
     var screenWidth: Int?
     var screenHeight:Int?
     var playerDead = false
     var levelChanged = false
     var enemyMoving = false
+    var playerMoving = false
     
     var player = SKSpriteNode.init()
     var enemy = SKSpriteNode.init()
+     let finishZone = SKSpriteNode.init(imageNamed: "end")
     
     func spawnBackground() {
         let background = SKSpriteNode.init(imageNamed: backgroundImageName)
@@ -73,20 +69,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
     }
     
-    func didBegin(_ contact: SKPhysicsContact) {
-        print("contact")
-        if contact.collisionImpulse > 0 &&
-            contact.bodyA.node?.name == "player" &&
-            contact.bodyB.node?.name == "enemy"{
-            death()
-        }
-    }
-    
     override func didMove(to view: SKView) {
         
         physicsWorld.contactDelegate = self
         
-          let finishZone = SKSpriteNode.init(imageNamed: "end")
         finishZone.name = "finish"
         finishZone.position = CGPoint(x: 2000, y: 1200)
         finishZone.zPosition = 2
@@ -97,34 +83,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         screenHeight = Int(size.height)
         
         spawnBackground()
-        
-        func spawnEnemy() {
-            
-            enemy = SKSpriteNode.init(imageNamed: enemyImageName)
-            
-            let randomX =  Int(arc4random_uniform(UInt32(screenWidth!)))
-            let randomY = Int(arc4random_uniform(UInt32(screenHeight!)))
-            
-           enemy.name = "enemy"
-            enemy.position = /*CGPoint(x: 800, y: 800)*/CGPoint (
-                x: CGFloat(randomX),
-                y: CGFloat(randomY))
-            
-            enemy.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: 80, height: 80), center: CGPoint(x: randomX, y: randomY))
-            enemy.physicsBody?.affectedByGravity = false
-            enemy.physicsBody?.categoryBitMask = enemycatagory
-            enemy.physicsBody?.collisionBitMask = enemycatagory | buildingcatagory | playercatagory
-            enemy.zPosition = 1
-
-            addChild(enemy)
-            
-            let _ = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false) { (timerEnemy) in
-                let remove = SKAction.removeFromParent()
-                self.enemy.run(remove)
-                self.randomPoint.run(remove)
-            }
-            randomMovement()
-        }
         
         func spawnPerson() {
             let person = SKSpriteNode.init(imageNamed: personImageName)
@@ -146,6 +104,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let actions = [appear, wait, disappear, removeFromParent]
             person.run(SKAction.sequence(actions))
         }
+        
+       
         spawnPlayer()
         
        run(SKAction.repeatForever(
@@ -162,20 +122,34 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player = SKSpriteNode.init(imageNamed: playerImageName)
         
         player.position = CGPoint(x: 400, y: 400)
-        player.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: 80, height: 80))
-        player.physicsBody?.affectedByGravity = false
-        player.physicsBody?.categoryBitMask = playercatagory
-        player.physicsBody?.collisionBitMask = enemycatagory | buildingcatagory
         player.zPosition = 0
         player.name = "player"
         
         addChild(player)
      
-        player.physicsBody?.categoryBitMask = 1
-        player.physicsBody?.contactTestBitMask = 2
-        player.physicsBody?.collisionBitMask =  2
         playerDead = false
         playerMovePointsPerSec = 180.0
+    }
+    
+    func spawnEnemy() {
+        
+        enemy = SKSpriteNode.init(imageNamed: enemyImageName)
+        
+        let randomX =  Int(arc4random_uniform(UInt32(screenWidth!)))
+        let randomY = Int(arc4random_uniform(UInt32(screenHeight!)))
+        
+        enemy.name = "enemy"
+        enemy.position = CGPoint (
+            x: CGFloat(randomX),
+            y: CGFloat(randomY))
+        
+        addChild(enemy)
+        
+        let _ = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false) { (timerEnemy) in
+            self.enemy.removeFromParent()
+            self.randomPoint.removeFromParent()
+        }
+        randomMovement()
     }
 
     
@@ -209,13 +183,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let direction = CGPoint(x: offset.x / CGFloat(length), y: offset.y / CGFloat(length))
         velocityE = CGPoint(x: direction.x * enemyMovePointsPerSec, y: direction.y * enemyMovePointsPerSec)
     }
+    
+    func finished() {
+        let _ = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { (timerEnemy) in
+            print("Changed level")
+            self.enemyImageName = "enemy L" + "2"
+            self.personImageName = "person L" + "2"
+            self.backgroundImageName = "backgroundLevel0" + "2"
+            self.spawnBackground()
+            self.death()
+            self.enemy.removeFromParent()
+            self.randomPoint.removeFromParent()
+            self.spawnEnemy()
+        }
+    }
+    
 
     // checks for collisions between sprites
     func checkCollisions() {
         var hitEnemies: [SKSpriteNode] = []
         var hitPeople: [SKSpriteNode] = []
         var hitRandomPoint: [SKSpriteNode] = []
-        var hitfinish: [SKSpriteNode] = []
+        var hitFinish: [SKSpriteNode] = []
+         var nodeArray = [SKNode]()
         enumerateChildNodes(withName: "enemy") { node,  _ in
             let enemy = node as! SKSpriteNode
             if enemy.frame.insetBy(dx: 20, dy: 20).intersects(self.player.frame) {
@@ -238,25 +228,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             self.playerMovePointsPerSec = 180.0
         }
     }
-        
         enumerateChildNodes(withName: "finish") { node,  _ in
             let finish = node as! SKSpriteNode
             if finish.frame.insetBy(dx: 20, dy: 20).intersects(self.player.frame) {
-                hitfinish.append(finish)
+                hitFinish.append(finish)
             }
         }
-        for finish in hitfinish {
-            levelChanged = true
-            let _ = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { (timerEnemy) in
-                self.enemyImageName = "enemy L2"
-                self.personImageName = "person L2"
-                self.backgroundImageName = "backgroundLevel02"
-                self.spawnBackground()
-                self.death()
-                    let remove = SKAction.removeFromParent()
-                    self.enemy.run(remove)
-                    self.randomPoint.run(remove)
-                }
+        for finish in hitFinish {
+            if nodeArray.contains(finishZone) == false {
+                finished()
+                nodeArray.append(finishZone)
+            }
         }
 
         enumerateChildNodes(withName: "randomPoint") { node, _ in
@@ -289,6 +271,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 playerDead = true
                 death()
                 playerMovePointsPerSec = 0
+                let remove = SKAction.removeFromParent()
+                randomPoint.run(remove)
+                let _ = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { (timerEnemy) in
+                    self.randomMovement()
+                }
             }
         }
   
@@ -340,17 +327,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // sets a random point on the screen for the enemy to make their way to
     func randomMovement() {
-            let randomX =  Int(arc4random_uniform(UInt32(screenWidth!)))
-            let randomY = Int(arc4random_uniform(UInt32(screenHeight!)))
-          randomPosition = CGPoint(x: randomX, y: randomY)
+        let remove = SKAction.removeFromParent()
+        randomPoint.run(remove)
+        
+            let randomX =  Int(arc4random_uniform(UInt32(screenWidth! - 20)))
+            let randomY = Int(arc4random_uniform(UInt32(screenHeight! - 20)))
+          randomPosition = CGPoint(x: randomX + 10, y: randomY + 10)
         randomPoint.position = randomPosition!
             print("\(randomPoint.position) = random position")
             randomPoint.name = "Random Point"
             
             addChild(randomPoint)
         enemyMoving = true
-        
-        
         }
     
     func boundsCheckPlayer() {
@@ -417,6 +405,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             } else {
                 moveSprite(player, velocity: velocity)
                 rotateSprite(player, direction: velocity, rotateRadiansPerSec: playerRotateRadiansPerSec)
+                playerMoving = true
             }
         }
         if enemyMoving == true {
@@ -434,15 +423,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         if enemy.position == randomPosition {
             enemyMoving = false
-            let remove = SKAction.removeFromParent()
-            randomPoint.run(remove)
-            let _ = Timer.scheduledTimer(withTimeInterval: 0.0, repeats: false) { (timerEnemy) in
-                let remove = SKAction.removeFromParent()
-                self.randomPoint.run(remove)
-                self.randomMovement()
-            }
+          randomMovement()
         }
-       
       
         boundsCheckPlayer()
         boundsCheckEnemy()
@@ -478,8 +460,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         shape.lineWidth = 1.0
         addChild(shape)
     }
-    
-   
 }
 
 
