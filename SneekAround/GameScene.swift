@@ -16,8 +16,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     let playableRect: CGRect
     
-    var enemyImageName = "enemy"
-    var personImageName = "person"
+    var enemyImageName = "enemy L1"
+    var personImageName = "person L1"
     var playerImageName = "character-1"
     var backgroundImageName = "backgroundLevel01"
     
@@ -26,6 +26,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var lastTouchLocation: CGPoint?
     var lastUpdateTime: TimeInterval = 0
     var dt: TimeInterval = 0
+    var levelCount: Int = 0
+    var levelCount2: Int = 1
     
     let playerRotateRadiansPerSec:CGFloat = 4.0 * π
     var playerMovePointsPerSec: CGFloat = 180.0
@@ -34,6 +36,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     let randomPoint = SKSpriteNode.init()
     var enemyId = 0
+    var levelCountArray = [Int()]
 
     var randomPosition: CGPoint?
     var screenWidth: Int?
@@ -53,6 +56,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         background.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         background.zPosition = -1
         addChild(background)
+        
+        
         
         func removeBackground() {
             let _ = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { (timerEnemy) in
@@ -185,17 +190,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func finished() {
-        let _ = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { (timerEnemy) in
+        
             print("Changed level")
-            self.enemyImageName = "enemy L" + "2"
-            self.personImageName = "person L" + "2"
-            self.backgroundImageName = "backgroundLevel0" + "2"
+            self.enemyImageName += String(self.levelCount + 1)
+            self.personImageName += String(self.levelCount + 1)
+            self.backgroundImageName += String(self.levelCount + 1)
             self.spawnBackground()
             self.death()
             self.enemy.removeFromParent()
             self.randomPoint.removeFromParent()
             self.spawnEnemy()
-        }
+        
     }
     
 
@@ -205,7 +210,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         var hitPeople: [SKSpriteNode] = []
         var hitRandomPoint: [SKSpriteNode] = []
         var hitFinish: [SKSpriteNode] = []
-         var nodeArray = [SKNode]()
+        var nodeArray = [player]
         enumerateChildNodes(withName: "enemy") { node,  _ in
             let enemy = node as! SKSpriteNode
             if enemy.frame.insetBy(dx: 20, dy: 20).intersects(self.player.frame) {
@@ -232,12 +237,27 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let finish = node as! SKSpriteNode
             if finish.frame.insetBy(dx: 20, dy: 20).intersects(self.player.frame) {
                 hitFinish.append(finish)
-            }
-        }
-        for finish in hitFinish {
-            if nodeArray.contains(finishZone) == false {
-                finished()
-                nodeArray.append(finishZone)
+               
+                if self.levelCount >= self.levelCount2 {
+                    if self.backgroundImageName == "backgroundLevel011" {
+                        print("level change premission requesting")
+                    let _ = Timer.scheduledTimer(withTimeInterval: 2.2, repeats: false) { (timerEnemy) in
+                        print("level change permitted")
+                        self.levelCount -= self.levelCount
+                        print(self.levelCount)
+                    }
+                } 
+                } else {
+                    print(self.levelCount)
+                    if nodeArray[self.levelCount] == self.finishZone {
+                        print("finishzone")
+                    } else {
+                        self.finished()
+                        self.levelCount += 1
+                        nodeArray.append(self.finishZone)
+                        print("run")
+                    }
+                }
             }
         }
 
@@ -327,8 +347,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // sets a random point on the screen for the enemy to make their way to
     func randomMovement() {
-        let remove = SKAction.removeFromParent()
-        randomPoint.run(remove)
+        randomPoint.removeFromParent()
         
             let randomX =  Int(arc4random_uniform(UInt32(screenWidth! - 20)))
             let randomY = Int(arc4random_uniform(UInt32(screenHeight! - 20)))
